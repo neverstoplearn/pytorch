@@ -248,11 +248,6 @@ def clear_global_rref():
 
 
 @torch.jit.script
-def no_args():
-    a = 1
-
-
-@torch.jit.script
 class MyScriptClass:
     def __init__(self):
         self.a = 10
@@ -577,7 +572,7 @@ class RpcTest(RpcAgentTestFixture):
     @dist_init
     def test_graceful_shutdown_with_uneven_workload(self):
         """Test graceful termination."""
-        self._run_uneven_workload(num_repeat=100)
+        self._run_uneven_workload()
 
     @dist_init(setup_rpc=False)
     def test_shutdown_followed_by_rpc(self):
@@ -833,8 +828,11 @@ class RpcTest(RpcAgentTestFixture):
 
     @dist_init
     def test_script_function_exception(self):
-        dst_rank = (self.rank + 1) % self.world_size
-
+        @torch.jit.script
+        def no_args():
+            a = 1
+        n = self.rank + 1
+        dst_rank = n % self.world_size
         with self.assertRaisesRegex(Exception, "no_args"):
             ret = rpc.rpc_sync("worker{}".format(dst_rank), no_args, args=(10,))
 
